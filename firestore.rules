@@ -1,0 +1,129 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: projects
+    // Document ID: auto-generated
+    // Fields:
+    //   - name: string (required, 1-100 chars)
+    //   - description: string (optional)
+    //   - targetAudience: string (optional)
+    //   - toneOfVoice: string (optional)
+    //   - mainGoals: string (optional)
+    //   - contentPillars: string (optional)
+    //   - competitors: string (optional)
+    //   - keywords: string (optional)
+    //   - userId: string (required, immutable)
+    //   - createdAt: timestamp (required, immutable)
+    //
+    // Collection: contents
+    // Document ID: auto-generated
+    // Fields:
+    //   - projectId: string (required, immutable)
+    //   - date: string (required, format YYYY-MM-DD)
+    //   - title: string (required, 1-200 chars)
+    //   - caption: string (optional)
+    //   - platform: string (enum: Instagram, Facebook, Both)
+    //   - format: string (enum: Reel, Post, Story, Carousel)
+    //   - userId: string (required, immutable)
+    //   - createdAt: timestamp (required, immutable)
+    //
+    // ===============================================================
+
+    // Helper Functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    function isDocOwner() {
+      return isAuthenticated() && request.auth.uid == resource.data.userId;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() &&
+        ((request.auth.token.email == "vellosystem@gmail.com" && request.auth.token.email_verified == true) ||
+         (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'));
+    }
+
+    function hasRequiredFields(fields) {
+      return request.resource.data.keys().hasAll(fields);
+    }
+
+    function hasOnlyAllowedFields(fields) {
+      return request.resource.data.keys().hasOnly(fields);
+    }
+
+    function isValidProject(data) {
+      let projectFields = [
+        'name', 'description', 'targetAudience', 'toneOfVoice', 'mainGoals', 
+        'contentPillars', 'competitors', 'keywords', 'brandValues', 'avoidTopics', 
+        'artDirection', 'logoLightImage', 'logoDarkImage', 'typographyImage', 
+        'graphicElementsImage', 'referenceCreativeImages', 'userId', 'createdAt'
+      ];
+      return hasRequiredFields(['name', 'userId', 'createdAt']) &&
+             hasOnlyAllowedFields(projectFields) &&
+             data.name is string && data.name.size() > 0 && data.name.size() <= 100 &&
+             data.userId is string &&
+             (!('description' in data) || (data.description is string && data.description.size() <= 2000)) &&
+             (!('targetAudience' in data) || (data.targetAudience is string && data.targetAudience.size() <= 1000)) &&
+             (!('toneOfVoice' in data) || (data.toneOfVoice is string && data.toneOfVoice.size() <= 500)) &&
+             (!('mainGoals' in data) || (data.mainGoals is string && data.mainGoals.size() <= 1000)) &&
+             (!('contentPillars' in data) || (data.contentPillars is string && data.contentPillars.size() <= 1000)) &&
+             (!('competitors' in data) || (data.competitors is string && data.competitors.size() <= 1000)) &&
+             (!('keywords' in data) || (data.keywords is string && data.keywords.size() <= 500)) &&
+             (!('brandValues' in data) || (data.brandValues is string && data.brandValues.size() <= 1000)) &&
+             (!('avoidTopics' in data) || (data.avoidTopics is string && data.avoidTopics.size() <= 1000)) &&
+             (!('artDirection' in data) || (data.artDirection is string && data.artDirection.size() <= 1000));
+    }
+
+    function isValidContent(data) {
+      let contentFields = [
+        'projectId', 'date', 'title', 'caption', 'platform', 'format', 
+        'userId', 'createdAt', 'referenceImage', 'savedCreatives', 'savedVideos',
+        'visualPromptImage', 'visualPromptVideo'
+      ];
+      return hasRequiredFields(['projectId', 'date', 'title', 'userId', 'createdAt']) &&
+             hasOnlyAllowedFields(contentFields) &&
+             data.projectId is string &&
+             data.date is string && data.date.matches("^\\d{4}-\\d{2}-\\d{2}$") &&
+             data.title is string && data.title.size() > 0 && data.title.size() <= 200 &&
+             data.userId is string &&
+             (!('caption' in data) || (data.caption is string && data.caption.size() <= 5000)) &&
+             (!('visualPromptImage' in data) || (data.visualPromptImage is string)) &&
+             (!('visualPromptVideo' in data) || (data.visualPromptVideo is string));
+    }
+
+    match /projects/{projectId} {
+      allow read: if isDocOwner() || isAdmin();
+      allow create: if isAuthenticated() && 
+                    isValidProject(request.resource.data) &&
+                    request.resource.data.userId == request.auth.uid;
+      allow update: if (isDocOwner() || isAdmin()) && 
+                    isValidProject(request.resource.data);
+      allow delete: if isDocOwner() || isAdmin();
+    }
+
+    match /contents/{contentId} {
+      allow read: if isDocOwner() || isAdmin();
+      allow create: if isAuthenticated() && isValidContent(request.resource.data);
+      allow update: if (isDocOwner() || isAdmin()) && 
+                    isValidContent(request.resource.data);
+      allow delete: if isDocOwner() || isAdmin();
+    }
+
+    match /users/{userId} {
+      allow read: if isOwner(userId) || isAdmin();
+      allow create: if isOwner(userId) && request.resource.data.role == 'user';
+      allow update: if (isOwner(userId) && request.resource.data.role == resource.data.role) || isAdmin();
+    }
+  }
+}

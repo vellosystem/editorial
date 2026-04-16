@@ -1,0 +1,62 @@
+{
+  "entities": {
+    "Project": {
+      "title": "Projeto de Linha Editorial",
+      "description": "Configurações estratégicas para uma marca ou projeto.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "description": "Nome da marca ou projeto" },
+        "description": { "type": "string", "description": "O que a marca faz" },
+        "targetAudience": { "type": "string", "description": "Público-alvo" },
+        "toneOfVoice": { "type": "string", "description": "Tom de voz da marca" },
+        "mainGoals": { "type": "string", "description": "Objetivos principais (vendas, engajamento, etc)" },
+        "contentPillars": { "type": "string", "description": "Pilares de conteúdo" },
+        "competitors": { "type": "string", "description": "Concorrentes ou referências" },
+        "keywords": { "type": "string", "description": "Palavras-chave importantes" },
+        "artDirection": { "type": "string", "description": "Direção de arte e estilo visual" },
+        "brandValues": { "type": "string", "description": "Valores da marca" },
+        "avoidTopics": { "type": "string", "description": "Tópicos a evitar" },
+        "logoLightImage": { "type": "object", "properties": { "data": { "type": "string" }, "mimeType": { "type": "string" } } },
+        "logoDarkImage": { "type": "object", "properties": { "data": { "type": "string" }, "mimeType": { "type": "string" } } },
+        "typographyImage": { "type": "object", "properties": { "data": { "type": "string" }, "mimeType": { "type": "string" } } },
+        "graphicElementsImage": { "type": "object", "properties": { "data": { "type": "string" }, "mimeType": { "type": "string" } } },
+        "referenceCreativeImages": { "type": "array", "items": { "type": "object", "properties": { "data": { "type": "string" }, "mimeType": { "type": "string" } } } },
+        "userId": { "type": "string", "description": "ID do proprietário" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["name", "userId", "createdAt"]
+    },
+    "Content": {
+      "title": "Conteúdo de Rede Social",
+      "description": "Postagem individual agendada ou gerada.",
+      "type": "object",
+      "properties": {
+        "projectId": { "type": "string", "description": "ID do projeto pai" },
+        "date": { "type": "string", "format": "date", "description": "Data da postagem" },
+        "title": { "type": "string", "description": "Título ou tema do post" },
+        "caption": { "type": "string", "description": "Legenda completa" },
+        "platform": { "type": "string", "enum": ["Instagram", "Facebook", "Both"], "description": "Plataforma de destino" },
+        "format": { "type": "string", "enum": ["Reel", "Post", "Story", "Carousel"], "description": "Formato do conteúdo" },
+        "visualPromptImage": { "type": "string", "description": "Prompt visual para imagem" },
+        "visualPromptVideo": { "type": "string", "description": "Prompt visual para vídeo" },
+        "referenceImage": { "type": "object", "properties": { "data": { "type": "string" }, "mimeType": { "type": "string" } } },
+        "fontReferenceImage": { "type": "object", "properties": { "data": { "type": "string" }, "mimeType": { "type": "string" } } },
+        "savedCreatives": { "type": "array", "items": { "type": "object", "properties": { "feedUrl": { "type": "string" }, "storyUrl": { "type": "string" }, "timestamp": { "type": "number" } } } },
+        "savedVideos": { "type": "array", "items": { "type": "object", "properties": { "videoUrl": { "type": "string" }, "timestamp": { "type": "number" } } } },
+        "userId": { "type": "string", "description": "ID do proprietário" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["projectId", "date", "title", "userId", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/projects/{projectId}": {
+      "schema": "Project",
+      "description": "Coleção de projetos estratégicos"
+    },
+    "/contents/{contentId}": {
+      "schema": "Content",
+      "description": "Coleção de posts gerados"
+    }
+  }
+}
